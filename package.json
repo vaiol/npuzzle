@@ -1,0 +1,19 @@
+{
+  "name": "n-puzzle",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node src/index.js --silent"
+  },
+  "dependencies": {
+    "heap": "^0.2.6",
+    "python-shell": "^1.0.6",
+    "sleep": "^5.2.3",
+    "yargs": "^12.0.5"
+  },
+  "devDependencies": {
+    "@types/heap": "^0.2.28",
+    "@types/node": "^10.12.10",
+    "@types/python-shell": "^0.4.1",
+    "@types/yargs": "^12.0.1"
+  }
+}
