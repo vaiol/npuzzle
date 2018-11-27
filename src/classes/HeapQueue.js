@@ -1,5 +1,8 @@
 const Heap = require('heap');
 
+/**
+ * Priority queue.
+ */
 class HeapQueue {
     constructor() {
         this.max = 0;

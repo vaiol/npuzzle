@@ -1,9 +1,11 @@
+/**
+ * Class that show state of puzzle field.
+ * Represent size, field, target and other information.
+ */
 class State {
     constructor(ctx, field, target) {
         this.ctx = ctx;
         this.target = target.slice();
-        this.h_score = null;
-        this.g_score = 0;
         this.field = [];
         for (const item of field) {
             this.field.push(item.slice());
@@ -14,26 +16,17 @@ class State {
             tmp.push(...item);
         }
         this.key = tmp.join('-');
-        this.open = false;
-        this.closed = false;
+        this.distanceToTarget = null;
+        this.distanceToStart = 0;
     }
 
     /**
-     * Compare method for queue priority
-     * @param {State} other
-     * @returns {boolean}
-     */
-    compare(other) {
-        return this.getHScore() < other.getHScore()
-    }
-
-    /**
-     * Swap empty cell with (y, x) cell
+     * Create new neighbor state for current state and chosen coordinate!
      * @param {number} y
      * @param {number} x
-     * @returns {State}
+     * @returns {State} neighbor
      */
-    swap(y, x) {
+    getNeighbor(y, x) {
         const [ty, tx] = this.target;
         const field = [];
         for (const item of this.field) {
@@ -41,11 +34,15 @@ class State {
         }
         field[ty][tx] = field[y][x];
         field[y][x] = 0;
-        return new State(this.ctx, field, [y, x])
+        const newState = new State(this.ctx, field, [y, x]);
+        newState.distanceToStart = this.distanceToStart + 1;
+        newState.getDistance();
+        return newState;
     }
 
     /**
      * Return positions (y, x) of neighbor cells
+     * @returns {Set<{number, number}>}
      */
     neighbors() {
         const neighborsSet = [];
@@ -62,12 +59,12 @@ class State {
 
 
     /**
-     * Select and run heuristic function if provided
-     * @returns {number}
+     * Calculate distance with selected function!
+     * @returns {number} distance
      */
-    getHScore() {
-        if (this.h_score)
-            return this.h_score;
+    getDistance() {
+        if (this.distanceToTarget)
+            return this.distanceToTarget;
         let result;
         switch (this.ctx.argv.heuristic) {
             case 3:
@@ -79,15 +76,15 @@ class State {
             default:
                 result = this.linearConflictsManhattan();
         }
+        this.distanceToTarget = result;
         return result;
     }
 
     /**
-     * Hamming distance
+     * Calculate hamming distance
+     * @returns {number} distance
      */
     hammingDistance() {
-        if (this.h_score)
-            return this.h_score;
         let result = 0;
         for (const [y, row] of this.field.entries()) {
             for (const [x, cell] of row.entries()) {
@@ -97,17 +94,14 @@ class State {
                     result += 1;
             }
         }
-        this.h_score = result;
-        return this.h_score
+        return result;
     }
 
     /**
-     * Manhattan distance
+     * Calculate manhattan distance
+     * @returns {number} distance
      */
     manhattan() {
-        if (this.h_score)
-            return this.h_score;
-
         let result = 0;
         for (const [y, row] of this.field.entries()) {
             for (const [x, cell] of row.entries()) {
@@ -117,18 +111,15 @@ class State {
                 result += Math.abs(y - gy) + Math.abs(x - gx);
             }
         }
-        this.h_score = result;
-        return this.h_score
+        return result;
     }
 
     /**
      * Linear conflict, one tile must move up or down or left or right to allow the other to pass by and then back up
      * For each conflict add two moves to the manhattan distance
-     * @returns {*}
+     * @returns {number} distance
      */
     linearConflictsManhattan() {
-        if (this.h_score)
-            return this.h_score;
         const conflictData = { maxY: 0, maxX: 0, num: 0 };
         let result = 0;
         for (const [y, row] of this.field.entries()) {
@@ -143,8 +134,7 @@ class State {
             conflictData.maxY = 0;
             conflictData.maxX = 0;
         }
-        this.h_score = result + (2 * conflictData['num']);
-        return this.h_score
+        return result + (2 * conflictData['num']);
     }
 
     /**
@@ -169,6 +159,10 @@ class State {
         }
         return conflictData;
     }
+
+    /**
+     * display current state field.
+     */
     showField() {
         const w = (this.size * this.size).toString().length + 1;
         let breakLine = '-';

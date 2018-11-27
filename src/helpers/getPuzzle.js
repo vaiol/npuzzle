@@ -2,39 +2,14 @@ const fs = require('fs');
 const { PythonShell } = require('python-shell');
 const isSolvable = require('./isSolvable');
 
-const generatePuzzle = async (argv) => {
-    let options = {
-        mode: 'text',
-        scriptPath: 'src/',
-        args: [`-S ${argv.g}`, '-s']
-    };
-    return new Promise((resolve) => {
-        PythonShell.run('generator.py', options, function (err, results) {
-            if (err) throw err;
-            const result = [];
-            for (let i = 1; i < results.length; i++) {
-                result.push(results[i].toString().replace(/\s+/g,' ').trim().split(' ').map(item => parseInt(item)))
-            }
-            resolve(result);
-        });
-    });
-};
-
-const generateValidPuzzle = async (argv) => {
-    let puzzle;
-    let solvable = false;
-    while (!solvable) {
-        puzzle = await generatePuzzle(argv);
-        solvable = isSolvable(puzzle);
-    }
-    return puzzle;
-};
-
-const readPuzzleFromFile = async (filename) => {
-    const set = new Set();
+/**
+ * Parse plain string rows and validate it!
+ * @param {Array} rows
+ * @returns {Array} - valid puzzle field
+ */
+const parseAndValidatePuzzle = (rows) => {
     const result = [];
-    const content = fs.readFileSync(filename, 'utf8');
-    let rows = content.split('\n');
+    const set = new Set();
     rows = rows.map(item => item.replace(/\s+/g,' ').trim());
     rows = rows.filter(item => item);
     rows = rows.filter(item => !item.startsWith('#'));
@@ -65,23 +40,80 @@ const readPuzzleFromFile = async (filename) => {
     if (set.size !== (max)) {
         throw new Error(`Puzzle has repeated numbers!`);
     }
-    return result;
+    return result
 };
 
 /**
- *
- * @param {object} argv
- * @returns {Promise<void>}
+ * Genrate puzzle using intra.42.fr standard generator.
+ * Check subject!
+ * @param size
+ * @returns {Promise<Array>}
+ */
+const generatePuzzle = async (size) => {
+    let options = {
+        mode: 'text',
+        scriptPath: 'src/',
+        args: [`-S ${size}`, '-s']
+    };
+    return new Promise((resolve) => {
+        PythonShell.run('generator.py', options, function (err, results) {
+            if (err) throw err;
+            resolve(parseAndValidatePuzzle(results));
+        });
+    });
+};
+
+/**
+ * Generate puzzle and check solvability.
+ * 3 behaviour available.
+ * - generate: do not check solvability
+ * - generate-solvable: generate only solvable puzzle
+ * - generate-error: generate puzzle and throw error if puzzle unsolvable.
+ * @param argv
+ * @returns {Promise<Array>}
+ */
+const generateSolvablePuzzle = async (argv) => {
+    const size = argv['generate'] || argv['generate-solvable'] || argv['generate-error'];
+    let puzzle = await generatePuzzle(size);
+    let solvable = isSolvable(puzzle);
+    if (argv['generate-solvable']) {
+        while (!solvable) {
+            puzzle = await generatePuzzle(size);
+            solvable = isSolvable(puzzle);
+        }
+    }
+    if (argv['generate-error'] && !solvable) {
+        console.log(puzzle);
+        throw new Error('Generated puzzle is unsolvable');
+    }
+    return puzzle;
+};
+
+/**
+ * Read puzzle from file, parse plain text to array of numbers and validate it.
+ * @param filename
+ * @returns {Promise<Array>}
+ */
+const readPuzzleFromFile = async (filename) => {
+    const content = fs.readFileSync(filename, 'utf8');
+    let rows = content.split('\n');
+    return parseAndValidatePuzzle(rows);
+};
+
+/**
+ * Get puzzle from array or randomly generated!
+ * @param argv
+ * @returns {Promise<Array>}
  */
 const getPuzzle = async (argv) => {
-    let rows;
+    let puzzle;
 
     if (argv.file) {
-        rows = await readPuzzleFromFile(argv.file);
-    } else if (argv.generate) {
-        rows = await generateValidPuzzle(argv);
+        puzzle = await readPuzzleFromFile(argv.file);
+    } else if (argv['generate'] || argv['generate-solvable'] || argv['generate-error']) {
+        puzzle = await generateSolvablePuzzle(argv);
     }
-    return rows;
+    return puzzle;
 };
 
 module.exports = getPuzzle;

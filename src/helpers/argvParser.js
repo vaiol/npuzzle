@@ -2,17 +2,23 @@ const fs = require('fs');
 
 module.exports = require('yargs')
     .option('generate', {
+        describe: 'Choose size of generating puzzle.',
+        type: 'number'
+    })
+    .option('generate-solvable', {
         alias: 'g',
-        describe: 'Size of the puzzle\'s side. Must be > 3. Optional.',
+        describe: 'Generate only solvable puzzle.',
+        type: 'number'
+    })
+    .option('generate-error', {
+        describe: 'Generate and throw error if puzzle unsolvable.',
         type: 'number'
     })
     .option('heuristic', {
         alias: 'H',
-        describe: 'Select heuristic function.\n' +
-            '1 - Manhattan distance + linear conflict.\n' +
-            '2 - Manhattan distance.\n' +
-            '3 - Hamming distance\n' +
-            'Default 1.',
+        describe: '1: Manhattan distance + linear conflict.\n' +
+            '2: Manhattan distance.\n' +
+            '3: Hamming distance\n',
         type: 'number',
         choices: [1, 2, 3],
         default: 1
@@ -25,7 +31,7 @@ module.exports = require('yargs')
     })
     .option('file', {
         alias: 'f',
-        describe: 'Get puzzle from file. If conflicting overrides everything else.',
+        describe: 'Read puzzle from file.',
         type: 'string'
     })
     .option('log', {
@@ -34,15 +40,9 @@ module.exports = require('yargs')
         default: false,
         type: 'boolean'
     })
-    .option('depth', {
-        alias: 'd',
-        describe: 'Convert A star to depth-first search by ignoring distance from starting position.',
-        default: false,
-        type: 'boolean'
-    })
     .check(argv => {
-        if (!argv.file && !argv.generate) {
-            return '\'genrate\' or \'file\' option should be provided'
+        if (!argv.file && !argv.generate && !argv['generate-solvable'] && !argv['generate-error']) {
+            return '\'generate\' or \'file\' option should be provided'
         }
         return true;
     })

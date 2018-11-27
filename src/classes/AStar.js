@@ -5,79 +5,61 @@ class AStar {
     constructor(ctx) {
         this.ctx = ctx;
         this.heap = new Queue();
-        this.fScore = {};
-        this.cameFrom = {};
-        this.totalSteps = 0;
+        this.fScoresMap = {};
+        this.allStepsMap = {};
+        this.iterations = 0;
+        this.startTime = null;
+        this.startState = new State(this.ctx, this.ctx.field, this.ctx.target);
+        this.resultSteps = [];
     }
-    parseHrtimeToSeconds(hrtime) {
-        return (hrtime[0] + (hrtime[1] / 1e9)).toFixed(3);
-    }
-    getResult(start, startTime) {
-        console.log('found');
+    getResult(start) {
         let current = this.ctx.goalKey;
-        let steps = [];
         while (current !== start) {
-            steps.push(current);
-            current = this.cameFrom[current];
+            this.resultSteps.push(current);
+            current = this.allStepsMap[current];
         }
-        steps.push(start);
-        steps = steps.reverse();
-        this.ctx.saveResult(steps, this.totalSteps, this.heap.max);
-        this.ctx.searchTime = this.parseHrtimeToSeconds(process.hrtime(startTime));
+        this.resultSteps.push(start);
+        this.resultSteps = this.resultSteps.reverse();
+        this.ctx.saveResults(this.resultSteps, this.iterations, this.heap.max);
+        this.ctx.saveSearchTime(this.startTime);
     }
     search() {
-        const startTime = process.hrtime();
-        const start = new State(this.ctx, this.ctx.field, this.ctx.target);
-        this.fScore[start.key] = start.getHScore();
-        start.showField();
-
-        this.heap.push(start, 0);
-        this.cameFrom[start.key] = null;
-        while (!this.heap.empty()) {
-            const current = this.heap.pop();
-            // log iteration
-            if (this.ctx.argv.log && this.totalSteps % 1000 === 0)
-                process.stdout.write(`\rIteration: ${this.totalSteps}, Queue len: ${this.heap.size()}`);
-            // set this state to opened
-            current.open = true;
-            if (current.key === this.ctx.goalKey)
-                return this.getResult(start.key, startTime);
-            // loop through neighbor positions
-            for (const { x, y } of current.neighbors()) {
-                // move empty cell to neighbor cell
-                const neighbor = current.swap(y, x);
-                // calculate neighbor g_score ( the cost from the starting state to the current state )
-                neighbor.g_score = current.g_score + 1;
-                neighbor.getHScore();
-                // calculate evaluation ( f = g + h )
-                let f;
-                if (this.ctx.size > 3)
-                    f = 1 + neighbor.h_score;
-                else
-                    f = neighbor.g_score + neighbor.h_score;
-                // if already processed move on to next
-                if (neighbor.closed || (this.fScore.hasOwnProperty(neighbor.key) && f >= this.fScore[neighbor.key]))
-                    continue;
-
-                this.fScore[neighbor.key] = f;
-                // add to queue
-                neighbor.open = true;
-                neighbor.closed = true;
-                this.heap.push(neighbor, f);
-                // set open state
-
-                // add state to graph
-                this.cameFrom[neighbor.key] = current.key
-            }
-            // set this state to be closed
-            current.closed = true;
-
-            // add iteration
-            this.totalSteps += 1;
+        // if search already done
+        if (this.resultSteps.length) {
+            return true;
         }
-        console.log('\nFailed to find', this.totalSteps);
-        process.exit(1);
-        return null;
+        // set startTime to current
+        this.startTime = process.hrtime();
+        this.fScoresMap[this.startState.key] = this.startState.getDistance();
+        this.startState.showField();
+        this.heap.push(this.startState, 0);
+        this.allStepsMap[this.startState.key] = null;
+        while (!this.heap.empty()) {
+            // get state with best priority
+            const current = this.heap.pop();
+            // if puzzle solved
+            if (current.key === this.ctx.goalKey)
+                return this.getResult(this.startState.key);
+            // for all neighbors of current state
+            for (const { x, y } of current.neighbors()) {
+                // create neighbor state with g score and distance calculated
+                const neighbor = current.getNeighbor(y, x);
+                let fScore = (this.ctx.size > 3) ? 1 + neighbor.distanceToTarget : neighbor.distanceToStart + neighbor.distanceToTarget;
+                if (this.fScoresMap.hasOwnProperty(neighbor.key) && fScore >= this.fScoresMap[neighbor.key])
+                    continue;
+                this.fScoresMap[neighbor.key] = fScore;
+                this.allStepsMap[neighbor.key] = current.key;
+                this.heap.push(neighbor, fScore);
+            }
+            this.iterations += 1;
+
+            // log iterations
+            if (this.ctx.argv.log && this.iterations % 1000 === 0) {
+                process.stdout.write(`\rIteration: ${this.iterations}, Queue len: ${this.heap.size()}`);
+            }
+        }
+        console.log();
+        throw new Error(`Solution not found. Total iterations: ${this.iterations}`);
     }
 }
 
