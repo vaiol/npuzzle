@@ -1,6 +1,6 @@
 const fs = require('fs');
 const { PythonShell } = require('python-shell');
-const isSolvable = require('./isSolvable');
+const { isSolvable } = require('./isSolvable');
 
 /**
  * Parse plain string rows and validate it!
@@ -97,7 +97,13 @@ const generateSolvablePuzzle = async (argv) => {
 const readPuzzleFromFile = async (filename) => {
     const content = fs.readFileSync(filename, 'utf8');
     let rows = content.split('\n');
-    return parseAndValidatePuzzle(rows);
+    const puzzle = parseAndValidatePuzzle(rows);
+    console.log(puzzle);
+    const solvable = isSolvable(puzzle);
+    if (!solvable) {
+        throw new Error('Generated puzzle is unsolvable');
+    }
+    return puzzle;
 };
 
 /**

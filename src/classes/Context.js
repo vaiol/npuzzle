@@ -15,9 +15,11 @@ class Context {
         this.target = [];
         this.results = [];
         this._setTarget();
-        this._setGoal();
+        // this._setGoal(this.size);
+        this._serGoal();
         this._setGoalHash();
         this._setGoalKey();
+        console.log(this.goalKey);
     }
 
     /**
@@ -38,7 +40,7 @@ class Context {
      * set goal
      * @private
      */
-    _setGoal() {
+    _serGoal() {
         for (let i = 0; i < this.size; i++) {
             this.goal.push([]);
             for (let j = 0; j < this.size; j++) {
@@ -46,6 +48,51 @@ class Context {
             }
         }
         this.goal[this.size - 1][this.size - 1] = 0;
+        console.log(this.goal);
+    }
+
+    _setGoal(n) {
+        const size = n;
+        // a is the result matrix
+        const a = [[]];
+
+        // d is the direction: right, bottom = 1; left, top = -1
+        let d = 1;
+
+        // c is the counter value.
+        let c = 0;
+
+        // x and y are the coordinates of the number in the matrix
+        let x = 0;
+        let y = -1;
+
+        // for n in [n ... 0]
+        for(; n; n--){
+
+            // NB: the following two for loops are merged in the minified code
+
+            // fill n columns
+            for(let i = 0; i < n; i++){
+
+                y += d;
+                a[x][y] = ++c;
+            }
+
+            // fill n-1 lines
+            for(let i = 0; i < n - 1; i++){
+
+                x += d;
+                if(!a[x]){
+                    a[x] = [];
+                }
+                a[x][y] = ++c;
+            }
+
+            // change direction
+            d = -d;
+        }
+        this.goal = a.map(arr => arr.map(item => (item === size * size) ? 0 : item));
+        console.log(this.goal);
     }
 
     /**

@@ -1,3 +1,40 @@
+const isSolvableSnail = (arrayMap) => {
+    const size = arrayMap.length;
+    const array = [].concat(...arrayMap); // flatten
+
+
+    let inv = 0;
+    for (const [i, puzzle] of array.entries()) {
+        for (const elem of array.slice(i)) {
+            if (!puzzle) {
+                break;
+            }
+            if (elem > puzzle) {
+                inv += 1
+            }
+        }
+    }
+    const is_inv_even = inv % 2 === 0;
+
+    if (size % 2 !== 0) { // size not even
+        return !is_inv_even
+    }
+
+
+    const odds = [].concat(...arrayMap.filter((element, index) => {
+        return (index % 2 === 0);
+    }));
+    const evens = [].concat(...arrayMap.filter((element, index) => {
+        return (index % 2 !== 0);
+    }));
+    if (odds.includes(0)) {
+        return is_inv_even
+    } else if (evens.includes(0)) {
+        return !is_inv_even
+    }
+    return false;
+};
+
 const countInversions = (arr) => {
     if (arr.length === 1) {
         return [arr, 0];
@@ -43,6 +80,9 @@ const isSolvable = (array) => {
     return inversions % 2 === 0
 };
 
-module.exports = isSolvable;
+module.exports = {
+    isSolvable,
+    isSolvableSnail,
+};
 
 

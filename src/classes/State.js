@@ -72,6 +72,7 @@ class State {
                 break;
             case 2:
                 result = this.manhattan();
+                break;
             case 1:
             default:
                 result = this.linearConflictsManhattan();

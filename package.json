@@ -2,7 +2,7 @@
   "name": "n-puzzle",
   "version": "1.0.0",
   "scripts": {
-    "start": "node src/index.js --silent"
+    "start": "node src/index.js"
   },
   "dependencies": {
     "heap": "^0.2.6",
